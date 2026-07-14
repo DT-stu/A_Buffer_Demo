@@ -21,7 +21,10 @@
         <button id="toggleMode" type="button">Toggle <kbd>Space</kbd></button>
         <button id="resetScene" class="secondary" type="button">Reset <kbd>R</kbd></button>
       </div>
-      <div class="status"><span class="status-dot"></span>Algorithm: <strong id="modeLabel">Z-buffer</strong></div>
+      <div class="algorithm-status">
+        <div class="status"><span class="status-dot"></span>Algorithm: <strong id="modeLabel">Z-buffer</strong></div>
+        <p id="modeExplanation">Keeps only the nearest triangle sample at each pixel. Transparent surfaces behind it are discarded.</p>
+      </div>
     </section>
 
     <section class="workspace">
@@ -47,14 +50,18 @@
         <p class="eyebrow">Depth profile</p>
         <h2>Side view</h2>
         <p>A second camera looks across the scene, revealing each mesh’s real silhouette, position, and overlap from the side.</p>
+        <div class="camera-control">
+          <label for="cameraAngle">Orbit around Z <output id="cameraAngleValue">0°</output></label>
+          <input id="cameraAngle" type="range" min="0" max="359" step="1" value="0">
+          <div class="camera-buttons">
+            <button id="cameraLeft" type="button" aria-label="Rotate side camera counterclockwise">↶ −15°</button>
+            <button id="cameraRight" type="button" aria-label="Rotate side camera clockwise">+15° ↷</button>
+          </div>
+        </div>
       </div>
       <canvas id="sideCanvas" width="700" height="150" aria-label="Side view showing object depth order"></canvas>
     </section>
 
-    <section class="explanation">
-      <article><span>01</span><h2>Z-buffer</h2><p>Keeps only the nearest sample at each pixel. Transparent surfaces behind it are discarded.</p></article>
-      <article><span>02</span><h2>A-buffer</h2><p>Keeps every triangle sample, sorts far-to-near, then blends each layer over the background.</p></article>
-    </section>
   </main>
   <script src="renderer.js"></script>
 </body>

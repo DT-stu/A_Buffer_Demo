@@ -5,14 +5,16 @@ const context = canvas.getContext("2d", { alpha:false });
 const sideCanvas = document.getElementById("sideCanvas");
 const sideContext = sideCanvas.getContext("2d");
 const WIDTH=canvas.width, HEIGHT=canvas.height, BACKGROUND=[102,112,120];
-let objects=[], mode="z", selectedIndex=0, lastABuffer=[], inspectedPixel={x:250,y:175};
+let objects=[], mode="z", selectedIndex=0, lastABuffer=[], inspectedPixel={x:250,y:175}, sideCameraAngle=0;
 
 const ui={
   zMode:document.getElementById("zMode"), aMode:document.getElementById("aMode"),
   toggle:document.getElementById("toggleMode"), reset:document.getElementById("resetScene"),
-  modeLabel:document.getElementById("modeLabel"), objectControls:document.getElementById("objectControls"),
+  modeLabel:document.getElementById("modeLabel"), modeExplanation:document.getElementById("modeExplanation"), objectControls:document.getElementById("objectControls"),
   debug:document.getElementById("debugPanel"), pixelTitle:document.getElementById("pixelTitle"),
-  samples:document.getElementById("sampleDetails")
+  samples:document.getElementById("sampleDetails"), cameraAngle:document.getElementById("cameraAngle"),
+  cameraAngleValue:document.getElementById("cameraAngleValue"), cameraLeft:document.getElementById("cameraLeft"),
+  cameraRight:document.getElementById("cameraRight")
 };
 
 const meshes={
@@ -138,12 +140,20 @@ function renderScene(){
 function renderSideView(){
   const w=sideCanvas.width,h=sideCanvas.height;
   sideContext.clearRect(0,0,w,h);sideContext.fillStyle="#11171c";sideContext.fillRect(0,0,w,h);
-  sideContext.fillStyle="#9eabb5";sideContext.font="12px system-ui";sideContext.fillText("SIDE CAMERA",12,18);
+  sideContext.fillStyle="#9eabb5";sideContext.font="12px system-ui";sideContext.fillText(`ORBIT CAMERA · ${Math.round(sideCameraAngle)}°`,12,18);
   sideContext.strokeStyle="#53616a";sideContext.beginPath();sideContext.moveTo(42,h-24);sideContext.lineTo(w-20,h-24);sideContext.stroke();
   const sideTriangles=[];
+  const radians=sideCameraAngle*Math.PI/180,cos=Math.cos(radians),sin=Math.sin(radians);
   objects.forEach((object,objectIndex)=>{
     const world=transformedVertices(object);
-    const sidePoints=world.map(v=>({x:42+(v.z/620)*(w-70),y:18+(v.y/HEIGHT)*(h-46),cameraDepth:v.x}));
+    // Orbiting around Z rotates the camera basis in the XY plane. Z remains the
+    // horizontal axis, while the vertical and camera-depth axes rotate together.
+    const sidePoints=world.map(v=>{
+      const centeredX=v.x-WIDTH/2,centeredY=v.y-HEIGHT/2;
+      const viewVertical=-centeredX*sin+centeredY*cos;
+      const cameraDepth=centeredX*cos+centeredY*sin;
+      return {x:42+(v.z/620)*(w-70),y:h/2+viewVertical*(h-46)/HEIGHT,cameraDepth};
+    });
     meshes[object.mesh].faces.forEach((face,faceIndex)=>sideTriangles.push({points:face.map(i=>sidePoints[i]),color:shadedColor(object.color,faceIndex),alpha:Math.max(.28,object.alpha),depth:face.reduce((sum,i)=>sum+sidePoints[i].cameraDepth,0)/3,objectIndex}));
   });
   sideTriangles.sort((a,b)=>b.depth-a.depth);
@@ -156,13 +166,17 @@ function renderSideView(){
 
 function updateControls(){
   ui.modeLabel.textContent=mode==="z"?"Z-buffer":"A-buffer";ui.zMode.classList.toggle("active",mode==="z");ui.aMode.classList.toggle("active",mode==="a");
+  ui.modeExplanation.textContent=mode==="z"
+    ?"Keeps only the nearest triangle sample at each pixel. Transparent surfaces behind it are discarded."
+    :"Keeps every triangle sample, sorts them from far to near, then alpha-blends every layer over the background.";
   ui.objectControls.querySelectorAll(".object-card").forEach((card,index)=>{
     const object=objects[index];card.classList.toggle("active",index===selectedIndex);card.querySelector(".position-output").textContent=`x ${Math.round(object.x)} · y ${Math.round(object.y)}`;
     for(const property of ["depth","alpha"]){const input=card.querySelector(`[data-property="${property}"]`);input.value=object[property];input.nextElementSibling.value=object[property].toFixed(2);}
   });
 }
 function setMode(next){mode=next;renderScene();}
-function resetScene(){createScene();inspectedPixel={x:250,y:175};renderScene();}
+function resetScene(){createScene();inspectedPixel={x:250,y:175};sideCameraAngle=0;ui.cameraAngle.value=0;renderScene();}
+function setSideCameraAngle(angle){sideCameraAngle=(Number(angle)+360)%360;ui.cameraAngle.value=sideCameraAngle;ui.cameraAngleValue.value=`${Math.round(sideCameraAngle)}°`;renderSideView();}
 function moveObject(object,direction){const step=5;if(direction==="left")object.x=Math.max(35,object.x-step);if(direction==="right")object.x=Math.min(WIDTH-35,object.x+step);if(direction==="up")object.y=Math.max(35,object.y-step);if(direction==="down")object.y=Math.min(HEIGHT-35,object.y+step);renderScene();}
 function inspectPixel(event){
   const rect=canvas.getBoundingClientRect(),x=Math.min(WIDTH-1,Math.max(0,Math.floor((event.clientX-rect.left)*WIDTH/rect.width))),y=Math.min(HEIGHT-1,Math.max(0,Math.floor((event.clientY-rect.top)*HEIGHT/rect.height)));
@@ -178,6 +192,9 @@ ui.objectControls.addEventListener("click",event=>{const card=event.target.close
 ui.objectControls.addEventListener("input",event=>{const property=event.target.dataset.property;if(!property)return;selectedIndex=Number(event.target.closest(".object-card").dataset.index);objects[selectedIndex][property]=Number(event.target.value);renderScene();});
 canvas.addEventListener("click",inspectPixel);
 canvas.addEventListener("pointermove",inspectPixel);
+ui.cameraAngle.addEventListener("input",event=>setSideCameraAngle(event.target.value));
+ui.cameraLeft.addEventListener("click",()=>setSideCameraAngle(sideCameraAngle-15));
+ui.cameraRight.addEventListener("click",()=>setSideCameraAngle(sideCameraAngle+15));
 document.addEventListener("keydown",event=>{if(event.target.matches("input, select"))return;if(event.key==="1")setMode("z");else if(event.key==="2")setMode("a");else if(event.code==="Space"){event.preventDefault();setMode(mode==="z"?"a":"z");}else if(event.key.toLowerCase()==="r")resetScene();else if(["ArrowLeft","ArrowRight","ArrowUp","ArrowDown"].includes(event.key)){event.preventDefault();moveObject(objects[selectedIndex],event.key.replace("Arrow","").toLowerCase());}});
 
 createScene();renderScene();
