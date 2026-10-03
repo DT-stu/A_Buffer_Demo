@@ -88,18 +88,23 @@ function sceneTriangles(){
   return triangles;
 }
 
+function edgeValue(a,b,x,y){return (b.x-a.x)*(y-a.y)-(b.y-a.y)*(x-a.x);}
+function isTopLeftEdge(a,b){const dx=b.x-a.x,dy=b.y-a.y;return dy<0||(dy===0&&dx>0);}
+function passesEdge(value,topLeft){const epsilon=.000001;return value>epsilon||(Math.abs(value)<=epsilon&&topLeft);}
+
 function rasterizeTriangle(triangle,visit){
-  const [a,b,c]=triangle.points;
+  let [a,b,c]=triangle.points;
   const minX=Math.max(0,Math.floor(Math.min(a.x,b.x,c.x))), maxX=Math.min(WIDTH-1,Math.ceil(Math.max(a.x,b.x,c.x)));
   const minY=Math.max(0,Math.floor(Math.min(a.y,b.y,c.y))), maxY=Math.min(HEIGHT-1,Math.ceil(Math.max(a.y,b.y,c.y)));
-  const area=(b.y-c.y)*(a.x-c.x)+(c.x-b.x)*(a.y-c.y);
+  let area=edgeValue(a,b,c.x,c.y);
   if(Math.abs(area)<.001)return;
+  if(area<0){[b,c]=[c,b];area=-area;}
+  const edge1TopLeft=isTopLeftEdge(b,c),edge2TopLeft=isTopLeftEdge(c,a),edge3TopLeft=isTopLeftEdge(a,b);
   for(let y=minY;y<=maxY;y++)for(let x=minX;x<=maxX;x++){
     const px=x+.5,py=y+.5;
-    const w1=((b.y-c.y)*(px-c.x)+(c.x-b.x)*(py-c.y))/area;
-    const w2=((c.y-a.y)*(px-c.x)+(a.x-c.x)*(py-c.y))/area;
-    const w3=1-w1-w2;
-    if(w1>=-.0001&&w2>=-.0001&&w3>=-.0001){
+    const edge1=edgeValue(b,c,px,py),edge2=edgeValue(c,a,px,py),edge3=edgeValue(a,b,px,py);
+    if(passesEdge(edge1,edge1TopLeft)&&passesEdge(edge2,edge2TopLeft)&&passesEdge(edge3,edge3TopLeft)){
+      const w1=edge1/area,w2=edge2/area,w3=edge3/area;
       // Screen-space weights must interpolate reciprocal distance after perspective projection.
       const inverseDistance=w1/(PROJECTION_DISTANCE+a.z)+w2/(PROJECTION_DISTANCE+b.z)+w3/(PROJECTION_DISTANCE+c.z);
       const depth=1/inverseDistance-PROJECTION_DISTANCE;
