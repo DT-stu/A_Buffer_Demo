@@ -26,8 +26,8 @@ Open `index.html` directly in a modern desktop browser. There is no build step, 
 - Click **Z-buffer**, **A-buffer**, or **Toggle** to change algorithms.
 - All four object cards remain visible. Each has independent depth and alpha sliders plus movement buttons.
 - Click a card to make that object the target for keyboard arrow-key movement.
-- The live side camera renders the actual mesh silhouettes and their spatial overlap. Its slider and ±15° buttons orbit the camera around the scene's Z axis.
-- Click the canvas to inspect all A-buffer samples at that pixel in blend order.
+- The auxiliary side camera shows the meshes' positions and depth relative to the main camera; it is an orientation aid, not output from either buffer algorithm. Its slider and ±15° buttons orbit the camera around the scene's Z axis.
+- Click the canvas to inspect the one retained fragment and discarded candidates in Z-buffer mode, or all stored fragments in A-buffer blend order.
 - Keyboard: `1` selects Z-buffer, `2` selects A-buffer, `Space` toggles, and `R` resets.
 
 ## Limitations

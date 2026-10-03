@@ -175,10 +175,10 @@ function renderSideView(){
 }
 
 function updateControls(){
-  ui.modeLabel.textContent=mode==="z"?"Z-buffer":"A-buffer";ui.zMode.classList.toggle("active",mode==="z");ui.aMode.classList.toggle("active",mode==="a");
+  ui.modeLabel.textContent=mode==="z"?"Z-buffer: nearest only":"Simplified A-buffer: all layers";ui.zMode.classList.toggle("active",mode==="z");ui.aMode.classList.toggle("active",mode==="a");
   ui.modeExplanation.textContent=mode==="z"
-    ?"Keeps only the nearest triangle sample at each pixel. Transparent surfaces behind it are discarded."
-    :"Keeps every triangle sample, sorts them from far to near, then alpha-blends every layer over the background.";
+    ?"Stores one nearest fragment per pixel. Covered transparent layers are discarded."
+    :"Stores every fragment per pixel, sorts them from far to near, and alpha-blends all layers.";
   ui.objectControls.querySelectorAll(".object-card").forEach((card,index)=>{
     const object=objects[index];card.classList.toggle("active",index===selectedIndex);card.querySelector(".position-output").textContent=`x ${Math.round(object.x)} · y ${Math.round(object.y)}`;
     for(const property of ["depth","alpha"]){const input=card.querySelector(`[data-property="${property}"]`);input.value=object[property];input.nextElementSibling.value=object[property].toFixed(2);}

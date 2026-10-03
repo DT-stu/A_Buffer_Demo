@@ -11,7 +11,7 @@
     <header>
       <p class="eyebrow">Interactive computer graphics demo</p>
       <h1>Z-Buffer <span>vs</span> A-Buffer</h1>
-      <p class="intro">Compare a closest-sample depth buffer with a multi-sample buffer across projected transparent 3D meshes.</p>
+      <p class="intro">Compare a Z-buffer that retains one nearest fragment with a simplified A-buffer that preserves and blends every transparent layer.</p>
     </header>
 
     <section class="toolbar" aria-label="Rendering controls">
@@ -22,8 +22,8 @@
         <button id="resetScene" class="secondary" type="button">Reset <kbd>R</kbd></button>
       </div>
       <div class="algorithm-status">
-        <div class="status"><span class="status-dot"></span>Algorithm: <strong id="modeLabel">Z-buffer</strong></div>
-        <p id="modeExplanation">Keeps only the nearest triangle sample at each pixel. Transparent surfaces behind it are discarded.</p>
+        <div class="status"><span class="status-dot"></span>Algorithm: <strong id="modeLabel">Z-buffer: nearest only</strong></div>
+        <p id="modeExplanation">Stores one nearest fragment per pixel. Covered transparent layers are discarded.</p>
       </div>
     </section>
 
@@ -47,9 +47,9 @@
 
     <section class="side-view-card">
       <div class="side-copy">
-        <p class="eyebrow">Depth profile</p>
-        <h2>Side view</h2>
-        <p>A second camera looks across the scene, revealing each mesh’s real silhouette, position, and overlap from the side.</p>
+        <p class="eyebrow">Auxiliary scene view</p>
+        <h2>Auxiliary side view</h2>
+        <p>This separate orientation aid shows each mesh’s position and depth relative to the main camera. It is not output from either buffer algorithm.</p>
         <div class="camera-control">
           <label for="cameraAngle">Orbit around Z <output id="cameraAngleValue">0°</output></label>
           <input id="cameraAngle" type="range" min="0" max="359" step="1" value="0">
@@ -59,7 +59,7 @@
           </div>
         </div>
       </div>
-      <canvas id="sideCanvas" width="700" height="150" aria-label="Side view showing object depth order"></canvas>
+      <canvas id="sideCanvas" width="700" height="150" aria-label="Auxiliary side view showing object depth order"></canvas>
     </section>
 
   </main>
