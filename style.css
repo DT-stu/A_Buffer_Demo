@@ -66,5 +66,7 @@ input[type=range]:focus-visible { outline:2px solid var(--accent); outline-offse
 .debug-panel[hidden] { display:none; }
 .samples { display:flex; flex-wrap:wrap; gap:8px; }
 .sample { padding:8px 10px; background:#10161b; border:1px solid var(--line); border-radius:7px; font-size:12px; }
+.sample.retained { border-color:var(--accent); }
+.sample.discarded { opacity:.58; }
 .chip { display:inline-block; width:10px; height:10px; border-radius:2px; margin-right:6px; }
 @media(max-width:800px){.workspace{grid-template-columns:1fr}.side-view-card,.debug-panel{grid-template-columns:1fr}.toolbar{align-items:flex-start;flex-direction:column}.algorithm-status{padding-top:5px}.app{padding:25px 0}}

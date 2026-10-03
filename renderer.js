@@ -5,7 +5,7 @@ const context = canvas.getContext("2d", { alpha:false });
 const sideCanvas = document.getElementById("sideCanvas");
 const sideContext = sideCanvas.getContext("2d");
 const WIDTH=canvas.width, HEIGHT=canvas.height, BACKGROUND=[102,112,120], PROJECTION_DISTANCE=500;
-let objects=[], mode="z", selectedIndex=0, lastABuffer=[], inspectedPixel={x:250,y:175}, sideCameraAngle=0;
+let objects=[], mode="z", selectedIndex=0, lastBuffers=null, inspectedPixel={x:250,y:175}, sideCameraAngle=0;
 
 const ui={
   zMode:document.getElementById("zMode"), aMode:document.getElementById("aMode"),
@@ -143,7 +143,7 @@ function renderScene(){
   const buffers=clearBuffers(),triangles=sceneTriangles();
   if(mode==="z")renderWithZBuffer(buffers,triangles);else renderWithABuffer(buffers,triangles);
   if(mode==="z")triangles.forEach(t=>rasterizeObjectToABuffer(t,buffers.samples));
-  lastABuffer=buffers.samples;context.putImageData(buffers.image,0,0);renderSideView();updateControls();
+  lastBuffers=buffers;context.putImageData(buffers.image,0,0);renderSideView();updateControls();
   if(inspectedPixel)updatePixelInspector(inspectedPixel.x,inspectedPixel.y);
 }
 
@@ -192,9 +192,27 @@ function inspectPixel(event){
   const rect=canvas.getBoundingClientRect(),x=Math.min(WIDTH-1,Math.max(0,Math.floor((event.clientX-rect.left)*WIDTH/rect.width))),y=Math.min(HEIGHT-1,Math.max(0,Math.floor((event.clientY-rect.top)*HEIGHT/rect.height)));
   inspectedPixel={x,y};updatePixelInspector(x,y);
 }
+function sampleMarkup(sample,label,className=""){
+  return `<div class="sample ${className}"><span class="chip" style="background:rgb(${sample.color.join(",")})"></span><strong>${label}${sample.name}</strong><br>depth ${sample.depth.toFixed(1)} · alpha ${sample.alpha.toFixed(2)}<br>RGB(${sample.color.join(", ")})</div>`;
+}
 function updatePixelInspector(x,y){
-  const samples=[...lastABuffer[y*WIDTH+x]].sort((a,b)=>b.depth-a.depth);ui.debug.hidden=false;ui.pixelTitle.textContent=`Pixel (${x}, ${y}) · ${samples.length} triangle sample${samples.length===1?"":"s"}`;
-  ui.samples.innerHTML=samples.length?`<p>Blend order: far → near</p><div class="samples">${samples.map((s,i)=>`<div class="sample"><span class="chip" style="background:rgb(${s.color.join(",")})"></span><strong>${i+1}. ${s.name}</strong><br>depth ${s.depth.toFixed(1)} · alpha ${s.alpha.toFixed(2)}<br>RGB(${s.color.join(", ")})</div>`).join("")}</div>`:"<p>No shape covers this pixel; only the background is visible.</p>";
+  if(!lastBuffers)return;
+  const samples=[...lastBuffers.samples[y*WIDTH+x]];ui.debug.hidden=false;
+  if(!samples.length){
+    ui.pixelTitle.textContent=`Pixel (${x}, ${y})`;
+    ui.samples.innerHTML="<p>No shape covers this pixel; only the background is visible.</p>";
+    return;
+  }
+  if(mode==="z"){
+    samples.sort((a,b)=>a.depth-b.depth);
+    const nearest=samples[0],discarded=samples.slice(1);
+    ui.pixelTitle.textContent=`Pixel (${x}, ${y}) · Z-buffer`;
+    ui.samples.innerHTML=`<p><strong>Stored:</strong> 1 nearest fragment · <strong>Discarded:</strong> ${discarded.length} farther fragment${discarded.length===1?"":"s"}</p><div class="samples">${sampleMarkup(nearest,"Stored: ","retained")}</div>${discarded.length?`<p>Discarded candidates</p><div class="samples">${discarded.map(sample=>sampleMarkup(sample,"","discarded")).join("")}</div>`:""}`;
+    return;
+  }
+  samples.sort((a,b)=>b.depth-a.depth);
+  ui.pixelTitle.textContent=`Pixel (${x}, ${y}) · A-buffer · ${samples.length} stored fragment${samples.length===1?"":"s"}`;
+  ui.samples.innerHTML=`<p>All fragments retained · blend order: far → near</p><div class="samples">${samples.map((sample,index)=>sampleMarkup(sample,`${index+1}. `)).join("")}</div>`;
 }
 
 ui.zMode.addEventListener("click",()=>setMode("z"));ui.aMode.addEventListener("click",()=>setMode("a"));ui.toggle.addEventListener("click",()=>setMode(mode==="z"?"a":"z"));ui.reset.addEventListener("click",resetScene);
