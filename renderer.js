@@ -4,7 +4,7 @@ const canvas = document.getElementById("sceneCanvas");
 const context = canvas.getContext("2d", { alpha:false });
 const sideCanvas = document.getElementById("sideCanvas");
 const sideContext = sideCanvas.getContext("2d");
-const WIDTH=canvas.width, HEIGHT=canvas.height, BACKGROUND=[102,112,120];
+const WIDTH=canvas.width, HEIGHT=canvas.height, BACKGROUND=[102,112,120], PROJECTION_DISTANCE=500;
 let objects=[], mode="z", selectedIndex=0, lastABuffer=[], inspectedPixel={x:250,y:175}, sideCameraAngle=0;
 
 const ui={
@@ -67,7 +67,7 @@ function transformedVertices(object){
 }
 
 function projectFront(vertex){
-  const scale=500/(500+vertex.z);
+  const scale=PROJECTION_DISTANCE/(PROJECTION_DISTANCE+vertex.z);
   return {x:WIDTH/2+(vertex.x-WIDTH/2)*scale,y:HEIGHT/2+(vertex.y-HEIGHT/2)*scale,z:vertex.z};
 }
 
@@ -99,7 +99,12 @@ function rasterizeTriangle(triangle,visit){
     const w1=((b.y-c.y)*(px-c.x)+(c.x-b.x)*(py-c.y))/area;
     const w2=((c.y-a.y)*(px-c.x)+(a.x-c.x)*(py-c.y))/area;
     const w3=1-w1-w2;
-    if(w1>=-.0001&&w2>=-.0001&&w3>=-.0001)visit(y*WIDTH+x,w1*a.z+w2*b.z+w3*c.z);
+    if(w1>=-.0001&&w2>=-.0001&&w3>=-.0001){
+      // Screen-space weights must interpolate reciprocal distance after perspective projection.
+      const inverseDistance=w1/(PROJECTION_DISTANCE+a.z)+w2/(PROJECTION_DISTANCE+b.z)+w3/(PROJECTION_DISTANCE+c.z);
+      const depth=1/inverseDistance-PROJECTION_DISTANCE;
+      visit(y*WIDTH+x,depth);
+    }
   }
 }
 
